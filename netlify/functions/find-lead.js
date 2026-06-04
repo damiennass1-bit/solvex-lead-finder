@@ -6,15 +6,19 @@ const MODEL = process.env.CLAUDE_MODEL || 'claude-haiku-4-5-20251001';
 
 const SYSTEM = `Tu es un assistant de prospection B2B pour un Business Developer chez Actemium Suisse (groupe VINCI Energies). Actemium vend des prestations d'ingénierie industrielle, d'automation, de MES et d'IoT à des sites industriels (pharma, chimie, agroalimentaire, énergie, manufacturing, eau).
 
-Ton rôle : à partir d'un nom d'entreprise et d'un lieu, utiliser la recherche web pour trouver le NOM RÉEL du décideur le plus pertinent à contacter.
+Ton rôle : à partir d'un nom d'entreprise et d'un lieu, utiliser la recherche web pour trouver le NOM RÉEL et le PROFIL LINKEDIN du décideur.
+
+STRATÉGIE DE RECHERCHE (suis ces étapes dans l'ordre) :
+1. Cherche "site:linkedin.com/in [entreprise] [poste demandé] [lieu]"
+2. Si pas de résultat, cherche "site:linkedin.com/in [entreprise] achat technique OR ingénierie OR maintenance [lieu]"
+3. Cherche aussi "[entreprise] [lieu] organigramme" ou "[entreprise] [lieu] équipe direction"
 
 Règles strictes :
-- Tu DOIS utiliser la recherche web pour trouver le nom réel d'une personne sur LinkedIn, le site de l'entreprise, ou d'autres sources publiques. Cherche par exemple "site:linkedin.com [entreprise] [poste] [lieu]".
-- N'invente JAMAIS un nom. Si après recherche tu ne trouves vraiment personne, laisse le champ "name" vide, mais essaie FORT de trouver un vrai nom.
-- Le bon décideur dépend de la taille du site : grand site → Responsable Achats Techniques, Responsable Ingénierie, Responsable Maintenance ou Directeur de site. PME → Directeur Général ou Directeur Technique.
-- Pour l'email : déduis le format à partir du domaine de l'entreprise (prenom.nom@domaine.ch, p.nom@domaine.com, etc.). Confiance "medium" si tu as le nom + le domaine, "high" seulement si confirmé par une source.
-- Le lien LinkedIn doit être une URL de RECHERCHE LinkedIn (https://www.linkedin.com/search/results/people/?keywords=...) ciblant l'entreprise + le poste, jamais une URL de profil inventée.
-- Le message : court (4-6 lignes), orienté valeur concrète (gain de temps, fiabilité, conformité), sans jargon commercial agressif. TOUJOURS écrire "Actemium" correctement. En français si canton romand, en allemand si canton alémanique, italien si Tessin.
+- Tu DOIS trouver un vrai nom. Cherche activement sur LinkedIn, le site de l'entreprise, les articles de presse. Ne te contente JAMAIS de "Nom à confirmer" sans avoir essayé plusieurs recherches.
+- Le bon décideur dépend de la taille du site : grand site → Responsable Achats Techniques, Acheteur Projets & Investissements, Responsable Ingénierie, Responsable Maintenance. PME → Directeur Général ou Directeur Technique.
+- Pour le LinkedIn : donne L'URL DIRECTE du profil LinkedIn si tu la trouves (ex: https://www.linkedin.com/in/prenom-nom-123abc/). Si tu ne trouves pas le profil exact, donne une URL de recherche LinkedIn comme fallback.
+- Pour l'email : déduis le format à partir du domaine (prenom.nom@domaine.com, p.nom@domaine.ch, etc.). Confiance "medium" si tu as le nom + domaine, "high" si confirmé par une source.
+- Le message : court (4-6 lignes), personnalisé avec le prénom du contact si trouvé, orienté valeur concrète. TOUJOURS écrire "Actemium" correctement. Français si canton romand, allemand si alémanique, italien si Tessin.
 
 IMPORTANT : Tu réponds UNIQUEMENT avec un objet JSON valide. Pas de texte avant ni après. Pas de backticks markdown. Juste le JSON brut.`;
 
@@ -23,8 +27,7 @@ function buildPrompt({ company, location, role }) {
 Lieu : "${location || 'non précisé'}"
 ${role ? `Poste à cibler en priorité : "${role}"` : 'Poste : à déterminer automatiquement selon la taille du site.'}
 
-ÉTAPE 1 : Utilise la recherche web pour trouver le NOM RÉEL de la personne occupant ce poste dans cette entreprise. Cherche sur LinkedIn et sur le site de l'entreprise.
-ÉTAPE 2 : Construis le JSON avec les vraies infos trouvées.
+OBLIGATOIRE : Fais au moins 2 recherches web pour trouver le NOM RÉEL et le PROFIL LINKEDIN de cette personne. Ne réponds pas sans avoir cherché.
 
 Réponds avec ce JSON exact (et RIEN d'autre) :
 {
@@ -40,24 +43,24 @@ Réponds avec ce JSON exact (et RIEN d'autre) :
   },
   "contacts": [
     {
-      "name": "NOM RÉEL trouvé par recherche web (ou vide si introuvable)",
+      "name": "NOM RÉEL trouvé (OBLIGATOIRE — cherche sur LinkedIn)",
       "role": "intitulé de poste",
       "seniority": "niveau hiérarchique",
-      "linkedin_search_url": "URL de recherche LinkedIn ciblée",
+      "linkedin_url": "URL DIRECTE du profil LinkedIn (https://linkedin.com/in/xxx) ou URL de recherche en fallback",
       "email_guess": "prenom.nom@domaine.com déduit",
-      "email_confidence": "medium",
+      "email_confidence": "low | medium | high",
       "rationale": "pourquoi c'est le bon contact pour Actemium"
     }
   ],
   "message": {
     "language": "fr",
     "subject": "objet court",
-    "body": "corps du message LinkedIn (4-6 lignes, mentionne Actemium)"
+    "body": "corps du message LinkedIn personnalisé avec le prénom"
   },
   "sources": ["URLs des sources consultées"]
 }
 
-Donne 1 à 2 contacts maximum, les plus pertinents.`;
+Donne 1 à 2 contacts maximum.`;
 }
 
 function extractJSON(text) {
@@ -97,7 +100,7 @@ export const handler = async (event) => {
         model: MODEL,
         max_tokens: 1500,
         system: SYSTEM,
-        tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 2 }],
+        tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 3 }],
         messages: [{ role: 'user', content: buildPrompt({ company, location, role }) }]
       })
     });
@@ -109,8 +112,6 @@ export const handler = async (event) => {
 
     const data = await res.json();
 
-    // Avec web_search, la reponse peut contenir plusieurs blocs.
-    // On concatene tous les blocs texte pour extraire le JSON final.
     const finalText = (data.content || [])
       .filter(b => b.type === 'text')
       .map(b => b.text)
@@ -118,10 +119,8 @@ export const handler = async (event) => {
       .trim();
 
     if (!finalText) {
-      // Si stop_reason est tool_use, le modele veut encore chercher mais on a sa reponse partielle
-      // On renvoie une erreur explicative
       if (data.stop_reason === 'tool_use') {
-        return { statusCode: 504, body: 'La recherche prend trop de temps. Réessayez avec un poste plus précis.' };
+        return { statusCode: 504, body: 'La recherche prend trop de temps. Réessayez ou précisez le poste.' };
       }
       return { statusCode: 502, body: 'Réponse vide du modèle.' };
     }

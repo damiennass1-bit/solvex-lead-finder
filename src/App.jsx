@@ -186,9 +186,11 @@ export default function App() {
                           <CopyBtn text={c.email_guess} label="Copier" />
                         </span>
                       )}
-                      {c.linkedin_search_url && (
+                      {(c.linkedin_url || c.linkedin_search_url) && (
                         <span className="data-chip">
-                          <a href={c.linkedin_search_url} target="_blank" rel="noreferrer">↗ Recherche LinkedIn</a>
+                          <a href={c.linkedin_url || c.linkedin_search_url} target="_blank" rel="noreferrer">
+                            {c.linkedin_url && !c.linkedin_url.includes('search') ? '↗ Profil LinkedIn' : '↗ Recherche LinkedIn'}
+                          </a>
                         </span>
                       )}
                     </div>
