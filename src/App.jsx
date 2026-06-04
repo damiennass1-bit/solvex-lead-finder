@@ -173,6 +173,11 @@ export default function App() {
                       <div>
                         <div className="contact-name">
                           {c.name ? c.name : <span className="unknown">Nom à confirmer</span>}
+                          {(c.linkedin_url || c.linkedin_search_url) && (
+                            <a className="linkedin-link" href={c.linkedin_url || c.linkedin_search_url} target="_blank" rel="noreferrer">
+                              {c.linkedin_url && !c.linkedin_url.includes('search') ? '↗ LinkedIn' : '↗ Chercher'}
+                            </a>
+                          )}
                         </div>
                         <div className="contact-role">{c.role}{c.seniority ? ` · ${c.seniority}` : ''}</div>
                       </div>
@@ -184,13 +189,6 @@ export default function App() {
                           {c.email_guess}
                           {c.email_confidence && <span className={`conf ${c.email_confidence}`}>{c.email_confidence}</span>}
                           <CopyBtn text={c.email_guess} label="Copier" />
-                        </span>
-                      )}
-                      {(c.linkedin_url || c.linkedin_search_url) && (
-                        <span className="data-chip">
-                          <a href={c.linkedin_url || c.linkedin_search_url} target="_blank" rel="noreferrer">
-                            {c.linkedin_url && !c.linkedin_url.includes('search') ? '↗ Profil LinkedIn' : '↗ Recherche LinkedIn'}
-                          </a>
                         </span>
                       )}
                     </div>

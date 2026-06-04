@@ -17,7 +17,7 @@ Règles strictes :
 - Tu DOIS trouver un vrai nom. Cherche activement sur LinkedIn, le site de l'entreprise, les articles de presse. Ne te contente JAMAIS de "Nom à confirmer" sans avoir essayé plusieurs recherches.
 - Le bon décideur dépend de la taille du site : grand site → Responsable Achats Techniques, Acheteur Projets & Investissements, Responsable Ingénierie, Responsable Maintenance. PME → Directeur Général ou Directeur Technique.
 - Pour le LinkedIn : donne L'URL DIRECTE du profil LinkedIn si tu la trouves (ex: https://www.linkedin.com/in/prenom-nom-123abc/). Si tu ne trouves pas le profil exact, donne une URL de recherche LinkedIn comme fallback.
-- Pour l'email : déduis le format à partir du domaine (prenom.nom@domaine.com, p.nom@domaine.ch, etc.). Confiance "medium" si tu as le nom + domaine, "high" si confirmé par une source.
+- Pour l'email : tu DOIS fournir un email PERSONNALISÉ avec le vrai nom trouvé (ex: nicolas.tieche@ucb.com). JAMAIS d'email générique comme prenom.nom@domaine.com. Si tu as trouvé le nom "Jean Dupont" et le domaine "acme.ch", l'email doit être "jean.dupont@acme.ch". Cherche le format email de l'entreprise via le web si possible. Confiance "medium" si nom + domaine confirmés, "high" si email trouvé dans une source.
 - Le message : court (4-6 lignes), personnalisé avec le prénom du contact si trouvé, orienté valeur concrète. TOUJOURS écrire "Actemium" correctement. Français si canton romand, allemand si alémanique, italien si Tessin.
 
 IMPORTANT : Tu réponds UNIQUEMENT avec un objet JSON valide. Pas de texte avant ni après. Pas de backticks markdown. Juste le JSON brut.`;
@@ -47,7 +47,7 @@ Réponds avec ce JSON exact (et RIEN d'autre) :
       "role": "intitulé de poste",
       "seniority": "niveau hiérarchique",
       "linkedin_url": "URL DIRECTE du profil LinkedIn (https://linkedin.com/in/xxx) ou URL de recherche en fallback",
-      "email_guess": "prenom.nom@domaine.com déduit",
+      "email_guess": "vrai.email@domaine.com avec le NOM RÉEL trouvé (PAS de générique prenom.nom)",
       "email_confidence": "low | medium | high",
       "rationale": "pourquoi c'est le bon contact pour Actemium"
     }

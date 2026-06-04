@@ -182,7 +182,13 @@ body {
 .contact:last-child { border-bottom: none; padding-bottom: 0; }
 .contact:first-child { padding-top: 0; }
 .contact-top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
-.contact-name { font-size: 17px; font-weight: 600; }
+.contact-name { font-size: 17px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+.linkedin-link {
+  font-family: var(--mono); font-size: 11px; color: var(--accent);
+  text-decoration: none; background: var(--accent-soft);
+  padding: 3px 8px; border-radius: 5px; white-space: nowrap;
+}
+.linkedin-link:hover { text-decoration: underline; }
 .contact-name .unknown { color: var(--text-faint); font-style: italic; font-weight: 400; }
 .contact-role { color: var(--accent); font-size: 13px; font-family: var(--mono); margin-top: 2px; }
 .contact-rationale { color: var(--text-dim); font-size: 13px; line-height: 1.5; margin-top: 8px; }
