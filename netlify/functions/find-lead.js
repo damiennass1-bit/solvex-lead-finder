@@ -17,8 +17,8 @@ Règles strictes :
 - Tu DOIS trouver un vrai nom. Cherche activement sur LinkedIn, le site de l'entreprise, les articles de presse. Ne te contente JAMAIS de "Nom à confirmer" sans avoir essayé plusieurs recherches.
 - Le bon décideur dépend de la taille du site : grand site → Responsable Achats Techniques, Acheteur Projets & Investissements, Responsable Ingénierie, Responsable Maintenance. PME → Directeur Général ou Directeur Technique.
 - Pour le LinkedIn : donne L'URL DIRECTE du profil LinkedIn si tu la trouves (ex: https://www.linkedin.com/in/prenom-nom-123abc/). Si tu ne trouves pas le profil exact, donne une URL de recherche LinkedIn comme fallback.
-- Pour l'email : donne UNIQUEMENT un email que tu as trouvé dans une source publique (site web, signature, article, annuaire). Si tu n'as PAS trouvé l'email exact dans une source fiable, laisse le champ "email_guess" comme une chaîne VIDE "". Ne déduis JAMAIS un email, ne devine JAMAIS. Un faux email est pire que pas d'email.
-- Le message : court (4-6 lignes), personnalisé avec le prénom du contact si trouvé, orienté valeur concrète. TOUJOURS écrire "Actemium" correctement. Français si canton romand, allemand si alémanique, italien si Tessin.
+- Pour l'email : si tu as trouvé le NOM RÉEL du contact ET le domaine email de l'entreprise, DÉDUIS l'email au format le plus courant (prenom.nom@domaine.com). Indique "deduced" comme confiance. Si tu trouves l'email exact dans une source publique, indique "verified". Ne laisse le champ vide QUE si tu n'as ni nom ni domaine.
+- Le message : court (4-6 lignes), personnalisé avec le prénom du contact si trouvé, orienté valeur concrète. Écris TOUJOURS "Actemium" correctement (pas "Acatemium", pas "Acnemium", pas "Actémium"). Français si canton romand (VD, GE, FR, NE, JU, VS), allemand si alémanique (ZH, BE, AG, BS, BL, LU, SG, TG, SH, GR, SO, AR, AI, GL, NW, OW, UR, SZ, ZG), italien si Tessin (TI).
 
 IMPORTANT : Tu réponds UNIQUEMENT avec un objet JSON valide. Pas de texte avant ni après. Pas de backticks markdown. Juste le JSON brut.`;
 
@@ -43,19 +43,19 @@ Réponds avec ce JSON exact (et RIEN d'autre) :
   },
   "contacts": [
     {
-      "name": "NOM RÉEL trouvé (OBLIGATOIRE — cherche sur LinkedIn)",
+      "name": "NOM RÉEL trouvé sur LinkedIn ou autre source",
       "role": "intitulé de poste",
       "seniority": "niveau hiérarchique",
-      "linkedin_url": "URL DIRECTE du profil LinkedIn (https://linkedin.com/in/xxx) ou URL de recherche en fallback",
-      "email_guess": "email RÉEL trouvé dans une source publique, ou chaîne vide si non trouvé",
-      "email_confidence": "high si trouvé dans une source, sinon ne pas inclure",
+      "linkedin_url": "URL DIRECTE du profil LinkedIn ou URL de recherche en fallback",
+      "email_guess": "prenom.nom@domaine.com déduit du vrai nom + domaine entreprise",
+      "email_confidence": "deduced si déduit, verified si trouvé dans une source",
       "rationale": "pourquoi c'est le bon contact pour Actemium"
     }
   ],
   "message": {
-    "language": "fr",
+    "language": "fr ou de ou it selon le canton",
     "subject": "objet court",
-    "body": "corps du message LinkedIn personnalisé avec le prénom"
+    "body": "corps du message LinkedIn personnalisé avec le prénom. ATTENTION : écrire Actemium correctement."
   },
   "sources": ["URLs des sources consultées"]
 }
@@ -69,6 +69,19 @@ function extractJSON(text) {
   const end = t.lastIndexOf('}');
   if (start === -1 || end === -1) throw new Error('Pas de JSON dans la réponse. Brut : ' + t.slice(0, 300));
   return JSON.parse(t.slice(start, end + 1));
+}
+
+async function callClaude(body) {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-api-key': process.env.ANTHROPIC_API_KEY,
+      'anthropic-version': '2023-06-01'
+    },
+    body: JSON.stringify(body)
+  });
+  return res;
 }
 
 export const handler = async (event) => {
@@ -88,26 +101,26 @@ export const handler = async (event) => {
     return { statusCode: 400, body: 'Le nom d\'entreprise est requis.' };
   }
 
+  const requestBody = {
+    model: MODEL,
+    max_tokens: 1500,
+    system: SYSTEM,
+    tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 3 }],
+    messages: [{ role: 'user', content: buildPrompt({ company, location, role }) }]
+  };
+
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: 1500,
-        system: SYSTEM,
-        tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 3 }],
-        messages: [{ role: 'user', content: buildPrompt({ company, location, role }) }]
-      })
-    });
+    let res = await callClaude(requestBody);
+
+    // Retry once on rate limit (429) after 2s pause
+    if (res.status === 429) {
+      await new Promise(r => setTimeout(r, 2000));
+      res = await callClaude(requestBody);
+    }
 
     if (!res.ok) {
       const errTxt = await res.text();
-      return { statusCode: 502, body: `Erreur API Anthropic : ${errTxt.slice(0, 300)}` };
+      return { statusCode: 502, body: `Erreur API Anthropic (${res.status}) : ${errTxt.slice(0, 300)}` };
     }
 
     const data = await res.json();

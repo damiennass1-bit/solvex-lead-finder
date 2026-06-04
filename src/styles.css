@@ -206,6 +206,8 @@ body {
 .conf.high { background: rgba(74,222,128,0.15); color: var(--green); }
 .conf.medium { background: rgba(251,191,36,0.15); color: var(--amber); }
 .conf.low { background: rgba(248,113,113,0.15); color: var(--red); }
+.conf.deduced { background: rgba(251,191,36,0.15); color: var(--amber); }
+.conf.verified { background: rgba(74,222,128,0.15); color: var(--green); }
 
 .copy-btn {
   background: var(--bg); border: 1px solid var(--line); color: var(--text-dim);
