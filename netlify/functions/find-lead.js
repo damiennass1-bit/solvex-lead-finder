@@ -2,7 +2,7 @@
 // Backend : appelle Claude avec recherche web pour identifier le décideur cible.
 // La cle API reste cote serveur (jamais exposee au navigateur).
 
-const MODEL = process.env.CLAUDE_MODEL || 'claude-sonnet-4-6';
+const MODEL = process.env.CLAUDE_MODEL || 'claude-haiku-4-5-20251001';
 
 const SYSTEM = `Tu es un assistant de prospection B2B pour un Business Developer chez Actemium Suisse (groupe VINCI Energies). Actemium vend des prestations d'ingénierie industrielle, d'automation, de MES et d'IoT à des sites industriels (pharma, chimie, agroalimentaire, énergie, manufacturing, eau).
 
@@ -94,7 +94,7 @@ export const handler = async (event) => {
         model: MODEL,
         max_tokens: 2500,
         system: SYSTEM,
-        tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 6 }],
+        tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 3 }],
         messages: [{ role: 'user', content: buildPrompt({ company, location, role }) }]
       })
     });
