@@ -1,5 +1,5 @@
 // netlify/functions/find-lead.js
-// Backend : appelle Claude avec recherche web pour identifier le décideur cible.
+// Backend : appelle Claude pour identifier le décideur cible.
 // La cle API reste cote serveur (jamais exposee au navigateur).
 
 const MODEL = process.env.CLAUDE_MODEL || 'claude-haiku-4-5-20251001';
@@ -9,59 +9,58 @@ const SYSTEM = `Tu es un assistant de prospection B2B pour un Business Developer
 Ton rôle : à partir d'un nom d'entreprise et d'un lieu, identifier le décideur le plus pertinent à contacter pour vendre ce type de prestations.
 
 Règles strictes :
-- Utilise la recherche web pour vérifier les informations. N'invente JAMAIS un nom de personne, un email ou une donnée. Si une info n'est pas trouvée de façon fiable, laisse le champ vide.
 - Le bon décideur dépend de la taille du site : grand site → Responsable Achats Techniques / Acheteur Projets & Investissements, Responsable Ingénierie, Responsable Maintenance ou Directeur de site. PME → Directeur Général ou Directeur Technique.
-- Pour l'email : déduis le format à partir de sources publiques (signatures, mentions, format courant de l'entreprise) et donne un niveau de confiance honnête (low/medium/high). Ne donne "high" que si le format est confirmé par une source.
+- Pour l'email : déduis le format à partir du format courant de l'entreprise (prenom.nom@domaine.ch ou p.nom@domaine.com etc.) et donne un niveau de confiance honnête (low/medium/high). Ne donne "high" que si tu es certain du format.
+- Si tu ne connais pas le nom exact d'une personne, laisse le champ "name" vide mais propose quand même le poste ciblé, le lien LinkedIn et le format d'email.
 - Le lien LinkedIn doit être une URL de RECHERCHE LinkedIn (https://www.linkedin.com/search/results/people/?keywords=...) ciblant l'entreprise + le poste, jamais une URL de profil inventée.
 - Le message : court (4-6 lignes), orienté valeur concrète (gain de temps, fiabilité, conformité), sans jargon commercial agressif, sans promesse exagérée. En français si canton romand, en allemand si canton alémanique (BS, BL, ZH, BE, AG, LU, SG, TG, SH, GR, SO, AR, AI, GL, NW, OW, UR, SZ, ZG), italien si Tessin.
 
-Tu réponds UNIQUEMENT avec un objet JSON valide, sans aucun texte autour, sans backticks markdown.`;
+IMPORTANT : Tu réponds UNIQUEMENT avec un objet JSON valide. Pas de texte avant ni après. Pas de backticks markdown. Juste le JSON brut.`;
 
 function buildPrompt({ company, location, role }) {
   return `Entreprise cible : "${company}"
 Lieu : "${location || 'non précisé'}"
 ${role ? `Poste à cibler en priorité : "${role}"` : 'Poste : à déterminer automatiquement selon la taille du site.'}
 
-Recherche les informations publiques nécessaires, puis réponds avec ce JSON exact :
+Réponds avec ce JSON exact (et RIEN d'autre) :
 {
   "company": {
     "name": "raison sociale exacte",
-    "verified": true ou false,
+    "verified": true,
     "sector": "secteur d'activité",
     "size": "effectif approximatif sur ce site",
-    "address": "adresse du site",
+    "address": "adresse du site si connue",
     "canton": "canton suisse (code 2 lettres)",
     "domain": "domaine email de l'entreprise",
-    "notes": "1 phrase de contexte utile pour l'approche commerciale (ex: investissement récent, extension de site)"
+    "notes": "1 phrase de contexte utile pour l'approche commerciale"
   },
   "contacts": [
     {
-      "name": "nom complet si trouvé de façon fiable, sinon vide",
+      "name": "nom complet si connu, sinon chaîne vide",
       "role": "intitulé de poste ciblé",
       "seniority": "niveau hiérarchique",
       "linkedin_search_url": "URL de recherche LinkedIn ciblée",
       "email_guess": "email déduit au format de l'entreprise",
-      "email_confidence": "low | medium | high",
-      "rationale": "pourquoi c'est le bon contact pour Actemium (1 phrase)"
+      "email_confidence": "low",
+      "rationale": "pourquoi c'est le bon contact pour Actemium"
     }
   ],
   "message": {
-    "language": "fr | de | it",
+    "language": "fr",
     "subject": "objet court",
     "body": "corps du message LinkedIn"
   },
-  "sources": ["url ou nom des sources consultées"]
+  "sources": ["connaissances générales"]
 }
 
-Donne 1 à 2 contacts maximum, les plus pertinents.`;
+Donne 1 à 2 contacts maximum.`;
 }
 
 function extractJSON(text) {
-  // Retire d'eventuels backticks puis isole le premier objet JSON complet
   let t = text.replace(/```json/gi, '').replace(/```/g, '').trim();
   const start = t.indexOf('{');
   const end = t.lastIndexOf('}');
-  if (start === -1 || end === -1) throw new Error('Pas de JSON dans la réponse du modèle.');
+  if (start === -1 || end === -1) throw new Error('Pas de JSON dans la réponse du modèle. Réponse brute : ' + t.slice(0, 200));
   return JSON.parse(t.slice(start, end + 1));
 }
 
@@ -92,9 +91,8 @@ export const handler = async (event) => {
       },
       body: JSON.stringify({
         model: MODEL,
-        max_tokens: 2500,
+        max_tokens: 1500,
         system: SYSTEM,
-        tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 3 }],
         messages: [{ role: 'user', content: buildPrompt({ company, location, role }) }]
       })
     });
@@ -106,7 +104,6 @@ export const handler = async (event) => {
 
     const data = await res.json();
 
-    // Avec recherche web, la reponse contient plusieurs blocs : on concatene les blocs texte.
     const finalText = (data.content || [])
       .filter(b => b.type === 'text')
       .map(b => b.text)
