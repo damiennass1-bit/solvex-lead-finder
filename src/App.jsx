@@ -70,7 +70,7 @@ export default function App() {
             <div className="brand-mark">S</div>
             <div>
               <div className="brand-name">Solvex · Lead Finder</div>
-              <div className="brand-sub">Actemium Suisse</div>
+              <div className="brand-sub">Prospection B2B · Industrie</div>
             </div>
           </div>
           <div className="status-pill"><span className="status-dot"></span>Opérationnel</div>
@@ -91,12 +91,12 @@ export default function App() {
               <div className="field">
                 <label>Entreprise</label>
                 <input value={company} onChange={e => setCompany(e.target.value)} onKeyDown={onKey}
-                  placeholder="ex. UCB Farchim" autoFocus />
+                  placeholder="Nom de l'entreprise cible" autoFocus />
               </div>
               <div className="field">
                 <label>Lieu / canton</label>
                 <input value={location} onChange={e => setLocation(e.target.value)} onKeyDown={onKey}
-                  placeholder="ex. Bulle, FR" />
+                  placeholder="Ville ou canton" />
               </div>
             </div>
             <div className="field field-full">

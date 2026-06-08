@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "Outil de recherche de décideurs B2B a la demande - Actemium Suisse",
+  "description": "Outil de recherche de décideurs B2B à la demande pour la prospection industrielle",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

@@ -1,6 +1,6 @@
 # Solvex · Lead Finder
 
-Outil de recherche de décideurs B2B **à la demande** pour Actemium Suisse.
+Outil de recherche de décideurs B2B **à la demande** pour la prospection industrielle.
 Tu tapes une entreprise + un lieu → Claude (avec recherche web) vérifie la cible,
 identifie le bon acheteur/décideur pour l'automation industrielle, déduit l'email pro
 et rédige un brouillon de message LinkedIn (FR / DE / IT selon le canton).
@@ -56,7 +56,7 @@ netlify deploy --prod
 Outil de prospection B2B. Les emails sont **déduits** de sources publiques avec un niveau
 de confiance affiché — à vérifier avant tout envoi. Aucune donnée n'est stockée côté serveur.
 Usage encadré : finalité commerciale claire, identification de l'expéditeur, droit d'opposition.
-À valider avec la DPO de VINCI Energies CH avant déploiement large.
+À valider avec votre DPO avant déploiement large.
 
 ## Évolutions possibles (v2)
 - Brancher **Apollo.io** ou **Dropcontact** pour des emails vérifiés à 100 % (au lieu de déduits).
