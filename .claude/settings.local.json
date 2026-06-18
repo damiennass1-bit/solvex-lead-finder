@@ -12,7 +12,9 @@
       "Bash(cmd.exe /c \"where node\" 2>&1)",
       "Bash(npm run:*)",
       "Bash(npx vite:*)",
-      "Bash(npm -v)"
+      "Bash(npm -v)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:solvex-lead-finder.netlify.app)"
     ]
   }
 }

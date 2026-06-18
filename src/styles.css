@@ -253,6 +253,14 @@ body {
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+.load-timer {
+  margin-top: 8px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-faint);
+  text-align: center;
+}
+
 /* ===== RESULTS ===== */
 .result-section {
   width: 100%;

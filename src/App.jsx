@@ -33,28 +33,38 @@ export default function App() {
   const [stepIdx, setStepIdx] = useState(0);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
-  const [showResults, setShowResults] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
     if (!loading) return;
     setStepIdx(0);
-    const t = setInterval(() => setStepIdx(i => Math.min(i + 1, LOADING_STEPS.length - 1)), 3200);
-    return () => clearInterval(t);
+    setElapsed(0);
+    const stepTimer = setInterval(() => setStepIdx(i => Math.min(i + 1, LOADING_STEPS.length - 1)), 3200);
+    const clockTimer = setInterval(() => setElapsed(t => t + 1), 1000);
+    return () => { clearInterval(stepTimer); clearInterval(clockTimer); };
   }, [loading]);
 
   const run = async () => {
-    if (!company.trim()) return;
-    setLoading(true); setError(null); setResult(null); setShowResults(true);
+    if (!company.trim() || loading) return;
+    setLoading(true); setError(null); setResult(null);
     try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 120000);
       const res = await fetch('/api/find-lead', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ company: company.trim(), location: location.trim(), role: role.trim() })
+        body: JSON.stringify({ company: company.trim(), location: location.trim(), role: role.trim() }),
+        signal: controller.signal
       });
+      clearTimeout(timeout);
       if (!res.ok) { const txt = await res.text(); throw new Error(`Erreur (${res.status}). ${txt.slice(0, 200)}`); }
       setResult(await res.json());
     } catch (e) {
-      setError(e.message || 'Une erreur est survenue.');
+      if (e.name === 'AbortError') {
+        setError('La recherche a pris trop de temps (>2 min). Reessaie ou simplifie le mot-cle.');
+      } else {
+        setError(e.message || 'Une erreur est survenue.');
+      }
     } finally { setLoading(false); }
   };
 
@@ -121,6 +131,7 @@ export default function App() {
                 {s}
               </div>
             ))}
+            <div className="load-timer">{elapsed}s — la recherche precise prend 20 a 60s</div>
           </section>
         )}
 
