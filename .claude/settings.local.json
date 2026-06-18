@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "Bash(npm install:*)",
+      "Bash(npm --version)",
+      "Bash(where node:*)",
+      "Bash(where npm:*)",
+      "Read(//c/Program Files/nodejs/**)",
+      "Read(//c/Program Files/nodejs//**)",
+      "Bash(echo:*)",
+      "Bash(cmd.exe /c \"where node\" 2>&1)",
+      "Bash(npm run:*)",
+      "Bash(npx vite:*)",
+      "Bash(npm -v)"
+    ]
+  }
+}
